@@ -1,0 +1,23 @@
+version: '3'
+services:
+  web:
+    build: ./web
+    ports:
+      - "8080:80"
+    depends_on:
+      - php
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: tutorial
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: web
+  php:
+    build: ./web
+    image: php:7-fpm
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: tutorial
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: php
