@@ -1,12 +1,70 @@
 
-pip install awscli --upgrade --user
+$ pip install awscli --upgrade --user
 
-aws iam --region ap-northeast-1 create-role --role-name ecsTaskExecutionRole --assume-role-policy-document ./role/task-execution-assume-role.json
-aws iam --region ap-northeast-1 attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+$ aws configure
+★ aws-cli用のユーザーを作る（IAMFullAccess, AmazonEC2FullAccess）
 
-ecs-cli configure --cluster tutorial --region ap-northeast-1 --default-launch-type FARGATE --config-name tutorial
-ecs-cli configure profile --access-key AWS_ACCESS_KEY_ID --secret-key AWS_SECRET_ACCESS_KEY --profile-name tutorial
+Fargateチュートリアル
+https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/ECS_CLI_tutorial_fargate.html
 
-ecs-cli up
-aws ec2 create-security-group --group-name "my-sg" --description "My security group" --vpc-id "VPC_ID"
-aws ec2 authorize-security-group-ingress --group-id "security_group_id" --protocol tcp --port 80 --cidr 0.0.0.0/0
+$ aws iam --region ap-northeast-1 create-role --role-name ecsTaskExecutionRole --assume-role-policy-document file://./server/role/task-execution-assume-role.json
+★ file://をファイルパスの前につける必要がある
+★ json中のVersionはAWSが決めたバージョンをいれる。自分で編集しない。
+
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "ecsTaskExecutionRole",
+        "RoleId": "AROAIUSVQG3GQ2K6FSREA",
+        "Arn": "arn:aws:iam::933244212735:role/ecsTaskExecutionRole",
+        "CreateDate": "2018-07-18T15:38:10.324Z",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "",
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "ecs-tasks.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+    }
+}
+
+$ aws iam --region ap-northeast-1 attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+ecs-cliをインストールする
+https://qiita.com/uwettie/items/31e9e3bf6594bde6f12d
+sudo curl -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-darwin-amd64-latest
+
+$ sudo chmod +x /usr/local/bin/ecs-cli
+$ ecs-cli --version
+ecs-cli version 1.6.0 (95406b1)
+
+$ ecs-cli configure --cluster tutorial --region ap-northeast-1 --default-launch-type FARGATE --config-name tutorial
+INFO[0000] Saved ECS CLI cluster configuration tutorial. 
+
+$ ecs-cli configure profile --access-key AWS_ACCESS_KEY_ID --secret-key AWS_SECRET_ACCESS_KEY --profile-name tutorial
+★ ecs-cli用のユーザーを作る（AmazonECS_FullAccess）
+
+INFO[0000] Saved ECS CLI profile configuration tutorial. 
+
+$ ecs-cli up
+INFO[0002] Created cluster                               cluster=tutorial region=ap-northeast-1
+INFO[0002] Waiting for your cluster resources to be created... 
+INFO[0002] Cloudformation stack status                   stackStatus=CREATE_IN_PROGRESS
+INFO[0063] Cloudformation stack status                   stackStatus=CREATE_IN_PROGRESS
+VPC created: vpc-07e47c63d5d164a5d
+Subnet created: subnet-0b6f93269404e4abf
+Subnet created: subnet-0f9f647424d5cb293
+Cluster creation succeeded.
+
+$ aws ec2 create-security-group --group-name "my-sg" --description "My security group" --vpc-id "vpc-07e47c63d5d164a5d"
+{
+    "GroupId": "sg-04c39ed94312b428b"
+}
+
+$ aws ec2 authorize-security-group-ingress --group-id "sg-04c39ed94312b428b" --protocol tcp --port 80 --cidr 0.0.0.0/0
